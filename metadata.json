@@ -1,0 +1,7 @@
+{
+  "name": "JanaSamadhan",
+  "description": "Jharkhand Societal Innovation & Accountability Platform - Citizen Portal for reporting local challenges, tracking university & industry solutions, and public accountability.",
+  "requestFramePermissions": ["geolocation", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

@@ -267,7 +267,7 @@ export const LocalDashboard: React.FC = () => {
 
                 {/* Title */}
                 <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-emerald-900 transition-colors line-clamp-2 leading-snug">
-                  {problem.title}
+                  {language === 'hi' && problem.titleHi ? problem.titleHi : problem.title}
                 </h4>
 
                 {/* Location & Reported date */}
@@ -280,7 +280,7 @@ export const LocalDashboard: React.FC = () => {
 
                 {/* Description excerpt */}
                 <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                  {problem.description}
+                  {language === 'hi' && problem.descriptionHi ? problem.descriptionHi : problem.description}
                 </p>
 
                 {/* If part of a cluster */}

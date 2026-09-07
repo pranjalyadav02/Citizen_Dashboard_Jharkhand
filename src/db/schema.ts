@@ -16,6 +16,15 @@ export const citizens = pgTable('citizens', {
   lastActiveAt: timestamp('last_active_at').defaultNow(),
 });
 
+export const citizenDevices = pgTable('citizen_devices', {
+  id: serial('id').primaryKey(),
+  citizenId: integer('citizen_id').references(() => citizens.id).notNull(),
+  fcmToken: text('fcm_token').notNull().unique(),
+  deviceType: text('device_type'),
+  createdAt: timestamp('created_at').defaultNow(),
+  lastUsedAt: timestamp('last_used_at').defaultNow(),
+});
+
 export const citizenPreferences = pgTable('citizen_preferences', {
   id: serial('id').primaryKey(),
   citizenId: integer('citizen_id').references(() => citizens.id).notNull(),
@@ -114,6 +123,7 @@ export const citizensRelations = relations(citizens, ({ many }) => ({
   challenges: many(challenges),
   supports: many(challengeSupport),
   integritySupports: many(integrityCaseSupport),
+  devices: many(citizenDevices),
 }));
 
 export const challengesRelations = relations(challenges, ({ one, many }) => ({

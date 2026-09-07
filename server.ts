@@ -3,8 +3,10 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { requireAuth, AuthRequest } from "./src/middleware/auth.ts";
 import { db } from "./src/db/index.ts";
-import { challenges, challengeLocations, challengeMedia, citizenResolutionFeedback, challengeSupport, integrityCases, integrityCaseSupport } from "./src/db/schema.ts";
+import { challenges, challengeLocations, challengeMedia, citizenResolutionFeedback, challengeSupport, integrityCases, integrityCaseSupport, citizenDevices, citizens } from "./src/db/schema.ts";
 import { eq, desc, sql, and } from "drizzle-orm";
+
+import { sendCitizenNotification } from "./src/lib/notifications.ts";
 
 async function startServer() {
   const app = express();
@@ -170,6 +172,72 @@ async function startServer() {
 
       res.json({ success: true, data: { supportCount: supportCount[0].count, status: caseRecord.status } });
     } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Notifications (FCM Device Registration)
+  app.post("/api/v1/citizen/notifications/token", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const { fcmToken, deviceType } = req.body;
+      if (!fcmToken) {
+        return res.status(400).json({ success: false, error: "Missing FCM token" });
+      }
+
+      await db.insert(citizenDevices).values({
+        citizenId: req.citizenId!,
+        fcmToken,
+        deviceType,
+      }).onConflictDoUpdate({
+        target: citizenDevices.fcmToken,
+        set: {
+          citizenId: req.citizenId!, // in case token transferred
+          lastUsedAt: new Date(),
+        },
+      });
+
+      res.json({ success: true, message: "Token registered" });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Mock endpoint to update challenge status and trigger notification
+  // In a real system, this would be an admin/government endpoint or a workflow event handler
+  app.patch("/api/v1/citizen/challenges/:id/status", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const challengeId = parseInt(req.params.id);
+      const { status } = req.body;
+
+      const [updated] = await db.update(challenges)
+        .set({ status, updatedAt: new Date() })
+        .where(eq(challenges.id, challengeId))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ success: false, error: "Challenge not found" });
+      }
+
+      // Send real-time FCM notification to the citizen
+      const citizen = await db.query.citizens.findFirst({
+        where: eq(citizens.id, updated.citizenId)
+      });
+
+      if (citizen) {
+        const title = `Challenge Status Update`;
+        const body = `Your report "${updated.title}" is now marked as ${status.replace(/_/g, ' ')}.`;
+        
+        await sendCitizenNotification(citizen.id, title, body, {
+          challengeId: updated.id.toString(),
+          publicId: updated.publicId,
+          newStatus: status
+        });
+      }
+
+      res.json({ success: true, data: updated });
+    } catch (e: any) {
+      console.error(e);
       res.status(500).json({ success: false, error: e.message });
     }
   });

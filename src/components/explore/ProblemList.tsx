@@ -27,6 +27,52 @@ export const ProblemList: React.FC = () => {
   const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
   const [selectedStage, setSelectedStage] = useState<string>('ALL');
   const [onlyVerified, setOnlyVerified] = useState(false);
+  const [sortBy, setSortBy] = useState<string>('RECENT');
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+
+  // Helper to calculate distance in km (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;  
+    const dLon = (lon2 - lon1) * Math.PI / 180; 
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c; 
+  };
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setSortBy(val);
+    if (val === 'PROXIMITY' && !userLocation) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+          },
+          (error) => {
+            console.warn("Error getting location", error);
+            // Fallback location (Ranchi center)
+            setUserLocation({ lat: 23.3441, lng: 85.3096 });
+          }
+        );
+      } else {
+        setUserLocation({ lat: 23.3441, lng: 85.3096 });
+      }
+    }
+  };
+
+  const getSeverityWeight = (severity: string) => {
+    switch (severity) {
+      case 'Critical': return 4;
+      case 'High': return 3;
+      case 'Medium': return 2;
+      case 'Low': return 1;
+      default: return 0;
+    }
+  };
 
   const problems = apiService.getProblems();
 
@@ -55,6 +101,26 @@ export const ProblemList: React.FC = () => {
     const matchesVerified = !onlyVerified || p.isGovernmentVerified;
 
     return matchesSearch && matchesCategory && matchesSeverity && matchesStage && matchesVerified;
+  });
+
+  const sortedProblems = [...filteredProblems].sort((a, b) => {
+    if (sortBy === 'URGENCY') {
+      const urgencyDiff = getSeverityWeight(b.severity) - getSeverityWeight(a.severity);
+      if (urgencyDiff !== 0) return urgencyDiff;
+      return new Date(b.reportedDate).getTime() - new Date(a.reportedDate).getTime();
+    }
+    if (sortBy === 'SECTOR') {
+      const sectorDiff = a.category.localeCompare(b.category);
+      if (sectorDiff !== 0) return sectorDiff;
+      return new Date(b.reportedDate).getTime() - new Date(a.reportedDate).getTime();
+    }
+    if (sortBy === 'PROXIMITY' && userLocation) {
+      const distA = calculateDistance(userLocation.lat, userLocation.lng, a.location.latitude, a.location.longitude);
+      const distB = calculateDistance(userLocation.lat, userLocation.lng, b.location.latitude, b.location.longitude);
+      return distA - distB;
+    }
+    // Default RECENT
+    return new Date(b.reportedDate).getTime() - new Date(a.reportedDate).getTime();
   });
 
   return (
@@ -141,11 +207,37 @@ export const ProblemList: React.FC = () => {
             <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">Gov Verified</span>
           </label>
         </div>
+
+        {/* Sorting row */}
+        <div className="flex flex-col md:flex-row items-center justify-between border-t border-slate-100 pt-4 mt-2">
+          <div className="flex items-center space-x-2 text-slate-600">
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="text-xs font-medium">Sort By:</span>
+            <select
+              value={sortBy}
+              onChange={handleSortChange}
+              className="ml-2 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+            >
+              <option value="RECENT">Most Recent</option>
+              <option value="URGENCY">Urgency Level (High to Low)</option>
+              <option value="SECTOR">Sector (A-Z)</option>
+              <option value="PROXIMITY">Proximity (Closest First)</option>
+            </select>
+            {sortBy === 'PROXIMITY' && !userLocation && (
+              <span className="text-[10px] text-amber-600 ml-2 animate-pulse">Locating...</span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Problems Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredProblems.map((p) => (
+        {sortedProblems.map((p) => {
+          const distance = sortBy === 'PROXIMITY' && userLocation 
+            ? calculateDistance(userLocation.lat, userLocation.lng, p.location.latitude, p.location.longitude) 
+            : null;
+
+          return (
           <div
             key={p.id}
             onClick={() => setSelectedProblemId(p.id)}
@@ -175,18 +267,24 @@ export const ProblemList: React.FC = () => {
               </div>
 
               <h3 className="text-sm font-bold text-slate-900 group-hover:text-emerald-900 transition-colors line-clamp-2 leading-snug">
-                {p.title}
+                {language === 'hi' && p.titleHi ? p.titleHi : p.title}
               </h3>
 
               <div className="flex items-center space-x-1 text-xs text-slate-500 font-medium">
                 <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span className="truncate">{p.location.block} • {p.location.village}</span>
+                {distance !== null && (
+                  <>
+                    <span>•</span>
+                    <span className="text-emerald-600 font-bold">{distance.toFixed(1)} km</span>
+                  </>
+                )}
                 <span>•</span>
                 <span>{p.reportedDate}</span>
               </div>
 
               <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                {p.description}
+                {language === 'hi' && p.descriptionHi ? p.descriptionHi : p.description}
               </p>
 
               {p.clusterName && (
@@ -217,7 +315,7 @@ export const ProblemList: React.FC = () => {
               </div>
             </div>
           </div>
-        ))}
+        )})}
       </div>
     </div>
   );

@@ -158,10 +158,10 @@ export const ProblemDetail: React.FC<{ problemId: string; onBack: () => void }> 
         {/* Title & Description */}
         <div className="space-y-3">
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-snug">
-            {problem.title}
+            {language === 'hi' && problem.titleHi ? problem.titleHi : problem.title}
           </h1>
           <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-            {problem.description}
+            {language === 'hi' && problem.descriptionHi ? problem.descriptionHi : problem.description}
           </p>
         </div>
 

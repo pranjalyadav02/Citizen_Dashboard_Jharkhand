@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Clock,
   Building,
+  Flame,
 } from 'lucide-react';
 
 export const WorkVerification: React.FC = () => {
@@ -30,23 +31,42 @@ export const WorkVerification: React.FC = () => {
     triggerRefresh();
   };
 
+  const verificationStreak = 12; // Mock data for user's active participation streak
+  const totalVerifiedCount = 45; // Mock data for total lifetime impact
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header Banner */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-2">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-800 text-white flex items-center justify-center font-bold text-sm">
-            <CheckCircle2 className="w-5 h-5" />
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-800 text-white flex items-center justify-center font-bold text-sm">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">
+                {language === 'hi'
+                  ? 'पूर्ण कार्यों का नागरिक सत्यापन'
+                  : 'Citizen Verification of Completed Work'}
+              </h1>
+              <p className="text-xs text-slate-500">
+                Government and contractors cannot close a civic ticket without ground audit and voting by local residents.
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">
-              {language === 'hi'
-                ? 'पूर्ण कार्यों का नागरिक सत्यापन'
-                : 'Citizen Verification of Completed Work'}
-            </h1>
-            <p className="text-xs text-slate-500">
-              Government and contractors cannot close a civic ticket without ground audit and voting by local residents.
-            </p>
+
+          {/* Verification Streak Indicator */}
+          <div className="flex items-center space-x-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-orange-200 px-4 py-2 rounded-xl shrink-0 shadow-sm">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-600">
+              <Flame className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-baseline space-x-1">
+                <span className="text-lg font-black text-orange-700">{verificationStreak}</span>
+                <span className="text-xs font-bold text-orange-600 uppercase tracking-wide">Day Streak</span>
+              </div>
+              <span className="text-[10px] text-orange-800 font-medium">{totalVerifiedCount} impacts made</span>
+            </div>
           </div>
         </div>
 

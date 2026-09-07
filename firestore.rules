@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Base helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isUser(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Validation helpers
+    function isValidCitizen(data) {
+      return data.keys().hasAll(['publicId', 'uid', 'createdAt', 'updatedAt']) &&
+             data.uid == request.auth.uid;
+    }
+
+    function isValidChallenge(data) {
+      return data.keys().hasAll(['publicId', 'citizenId', 'title', 'description', 'status', 'createdAt']) &&
+             data.citizenId == request.auth.uid;
+    }
+
+    function isValidReport(data) {
+      return data.keys().hasAll(['publicId', 'type', 'title', 'description', 'status', 'createdAt']);
+    }
+
+    // Citizen Collection
+    match /citizens/{citizenId} {
+      allow read: if isUser(citizenId);
+      allow create: if isUser(citizenId) && isValidCitizen(request.resource.data);
+      allow update: if isUser(citizenId) && request.resource.data.uid == resource.data.uid;
+      allow delete: if false; // Only backend deletes
+    }
+
+    // Challenge Collection
+    match /challenges/{challengeId} {
+      allow read: if resource.data.visibility == 'PUBLIC' || isUser(resource.data.citizenId);
+      allow create: if isAuthenticated() && isValidChallenge(request.resource.data);
+      allow update: if isUser(resource.data.citizenId) && request.resource.data.citizenId == resource.data.citizenId;
+      allow delete: if false; // Soft deletes or backend only
+    }
+
+    // Report Collection
+    match /reports/{reportId} {
+      allow read: if resource.data.type == 'INFRASTRUCTURE_ISSUE' || isUser(resource.data.citizenId);
+      allow create: if isValidReport(request.resource.data); // allow anonymous creation for integrity
+      allow update: if isUser(resource.data.citizenId) && request.resource.data.citizenId == resource.data.citizenId;
+      allow delete: if false;
+    }
+
+    // Metadata Collection
+    match /metadata/{documentId} {
+      allow read: if true; // Public stats
+      allow write: if false; // Only backend updates stats
+    }
+  }
+}

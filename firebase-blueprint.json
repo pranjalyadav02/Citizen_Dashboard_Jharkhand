@@ -1,0 +1,106 @@
+{
+  "entities": {
+    "Citizen": {
+      "title": "Citizen",
+      "description": "Represents a citizen user in the portal.",
+      "type": "object",
+      "properties": {
+        "publicId": { "type": "string" },
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "preferredLanguage": { "type": "string", "default": "en" },
+        "status": { "type": "string", "enum": ["ACTIVE", "RESTRICTED", "FLAGGED"] },
+        "verificationStatus": { "type": "string", "enum": ["UNVERIFIED", "PHONE_VERIFIED", "IDENTITY_VERIFIED", "COMMUNITY_VERIFIED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "lastActiveAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["publicId", "uid", "createdAt", "updatedAt"]
+    },
+    "Challenge": {
+      "title": "Challenge",
+      "description": "A societal or infrastructure problem reported by a citizen.",
+      "type": "object",
+      "properties": {
+        "publicId": { "type": "string" },
+        "citizenId": { "type": "string", "description": "Reference to Citizen document ID" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "language": { "type": "string" },
+        "reporterType": { "type": "string", "enum": ["CITIZEN", "ANONYMOUS"] },
+        "status": { "type": "string", "enum": ["DRAFT", "SUBMITTED", "PROCESSING", "AI_ANALYSIS", "PENDING_VERIFICATION", "VERIFIED", "ASSIGNED", "IN_PROGRESS", "RESOLVED", "CLOSED"] },
+        "visibility": { "type": "string", "enum": ["PUBLIC", "COMMUNITY", "OFFICIAL", "RESTRICTED", "PRIVATE"] },
+        "domain": { "type": "string" },
+        "subdomain": { "type": "string" },
+        "aiConfidence": { "type": "number" },
+        "aiPriority": { "type": "string" },
+        "projectId": { "type": "string" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" },
+            "accuracy": { "type": "number" },
+            "districtId": { "type": "string" },
+            "blockId": { "type": "string" },
+            "panchayatId": { "type": "string" },
+            "villageId": { "type": "string" },
+            "source": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["publicId", "citizenId", "title", "description", "status", "createdAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Infrastructure or Integrity report.",
+      "type": "object",
+      "properties": {
+        "publicId": { "type": "string" },
+        "type": { "type": "string", "enum": ["INFRASTRUCTURE_ISSUE", "INTEGRITY_COMPLAINT", "CONTRACT_ISSUE"] },
+        "citizenId": { "type": "string" },
+        "trackingPinHash": { "type": "string", "description": "Used for anonymous integrity reports" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "department": { "type": "string" },
+        "status": { "type": "string" },
+        "supportCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["publicId", "type", "title", "description", "status", "createdAt"]
+    },
+    "Metadata": {
+      "title": "Metadata",
+      "description": "Platform-wide metadata, aggregates, and configuration.",
+      "type": "object",
+      "properties": {
+        "totalCitizens": { "type": "number" },
+        "totalChallenges": { "type": "number" },
+        "activeProjects": { "type": "number" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/citizens/{citizenId}": {
+      "schema": { "$ref": "#/entities/Citizen" },
+      "description": "Collection of registered citizens."
+    },
+    "/challenges/{challengeId}": {
+      "schema": { "$ref": "#/entities/Challenge" },
+      "description": "Collection of reported challenges."
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/Report" },
+      "description": "Collection of infrastructure and integrity reports."
+    },
+    "/metadata/{documentId}": {
+      "schema": { "$ref": "#/entities/Metadata" },
+      "description": "Global metadata and aggregate statistics."
+    }
+  }
+}

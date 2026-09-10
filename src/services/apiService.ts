@@ -1,7 +1,7 @@
 /**
- * JanaSamadhan - Core API & Storage Service
- * Monorepo-ready abstraction layer for citizen queries, mutations,
- * offline synchronization, and state management.
+ * JanaSamadhan - Connected API Service
+ * Synchronizes client state with the Express backend REST API
+ * Fallback to local persistent cache for offline / resilience.
  */
 
 import {
@@ -9,18 +9,17 @@ import {
   Project,
   InfrastructureAsset,
   IntegrityCase,
-  AccountabilityRecord,
   WorkVerificationAudit,
+  AccountabilityRecord,
   CitizenNotification,
-  Citizen,
 } from '../types';
 import {
   PROBLEMS_DATA,
   PROJECTS_DATA,
   INFRASTRUCTURE_ASSETS,
   INTEGRITY_CASES,
-  ACCOUNTABILITY_RECORDS,
   WORK_VERIFICATIONS,
+  ACCOUNTABILITY_RECORDS,
   INITIAL_NOTIFICATIONS,
   CURRENT_CITIZEN,
 } from '../data/mockData';
@@ -31,55 +30,140 @@ const STORAGE_KEYS = {
   INTEGRITY: 'janasamadhan_integrity',
   VERIFICATIONS: 'janasamadhan_verifications',
   NOTIFICATIONS: 'janasamadhan_notifications',
-  OFFLINE_QUEUE: 'janasamadhan_offline_queue',
 };
 
 class ApiService {
+  private problemsCache: Problem[];
+  private projectsCache: Project[];
+  private assetsCache: InfrastructureAsset[];
+  private integrityCache: IntegrityCase[];
+  private verificationsCache: WorkVerificationAudit[];
+  private notificationsCache: CitizenNotification[];
+
+  constructor() {
+    this.problemsCache = this.getStored<Problem[]>(STORAGE_KEYS.PROBLEMS, PROBLEMS_DATA);
+    this.projectsCache = this.getStored<Project[]>(STORAGE_KEYS.PROJECTS, PROJECTS_DATA);
+    this.assetsCache = INFRASTRUCTURE_ASSETS;
+    this.integrityCache = this.getStored<IntegrityCase[]>(STORAGE_KEYS.INTEGRITY, INTEGRITY_CASES);
+    this.verificationsCache = this.getStored<WorkVerificationAudit[]>(STORAGE_KEYS.VERIFICATIONS, WORK_VERIFICATIONS);
+    this.notificationsCache = this.getStored<CitizenNotification[]>(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+
+    // Initial background sync with backend API
+    this.syncFromBackend();
+  }
+
   private getStored<T>(key: string, fallback: T): T {
     try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : fallback;
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : fallback;
+      }
     } catch {
-      return fallback;
+      // Fallback
     }
+    return fallback;
   }
 
   private setStored<T>(key: string, value: T): void {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
     } catch (err) {
       console.warn('Storage write failed', err);
     }
   }
 
+  // --- BACKGROUND SYNC FROM BACKEND ---
+  private async syncFromBackend() {
+    if (typeof window === 'undefined') return;
+    try {
+      // Fetch problems
+      const probRes = await fetch('/api/v1/citizen/challenges');
+      if (probRes.ok) {
+        const json = await probRes.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          this.problemsCache = json.data;
+          this.setStored(STORAGE_KEYS.PROBLEMS, this.problemsCache);
+        }
+      }
+
+      // Fetch integrity cases
+      const intRes = await fetch('/api/v1/citizen/integrity');
+      if (intRes.ok) {
+        const json = await intRes.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          this.integrityCache = json.data;
+          this.setStored(STORAGE_KEYS.INTEGRITY, this.integrityCache);
+        }
+      }
+
+      // Fetch verifications
+      const verRes = await fetch('/api/v1/citizen/verifications');
+      if (verRes.ok) {
+        const json = await verRes.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          this.verificationsCache = json.data;
+          this.setStored(STORAGE_KEYS.VERIFICATIONS, this.verificationsCache);
+        }
+      }
+
+      // Fetch notifications
+      const notRes = await fetch('/api/v1/citizen/notifications');
+      if (notRes.ok) {
+        const json = await notRes.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          this.notificationsCache = json.data;
+          this.setStored(STORAGE_KEYS.NOTIFICATIONS, this.notificationsCache);
+        }
+      }
+    } catch (e) {
+      // Backend might still be starting or running offline
+    }
+  }
+
   // --- PROBLEMS ---
   getProblems(): Problem[] {
-    return this.getStored<Problem[]>(STORAGE_KEYS.PROBLEMS, PROBLEMS_DATA);
+    return this.problemsCache;
   }
 
   getProblemById(id: string): Problem | undefined {
-    return this.getProblems().find((p) => p.id === id);
+    return this.problemsCache.find((p) => p.id?.toLowerCase() === id.toLowerCase());
   }
 
   createProblem(problem: Problem): Problem {
-    const problems = this.getProblems();
-    const updated = [problem, ...problems];
-    this.setStored(STORAGE_KEYS.PROBLEMS, updated);
+    this.problemsCache = [problem, ...this.problemsCache];
+    this.setStored(STORAGE_KEYS.PROBLEMS, this.problemsCache);
+
+    // Sync with backend API
+    fetch('/api/v1/citizen/challenges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(problem),
+    }).catch((err) => console.warn('Backend sync error:', err));
+
     return problem;
   }
 
   supportProblem(problemId: string, type: 'SUPPORT' | 'EXPERIENCED_THIS'): Problem | undefined {
-    const problems = this.getProblems();
-    const target = problems.find((p) => p.id === problemId);
+    const target = this.problemsCache.find((p) => p.id === problemId);
     if (!target) return undefined;
 
     if (type === 'SUPPORT') {
-      target.supportersCount += 1;
+      target.supportersCount = (target.supportersCount || 0) + 1;
     } else {
-      target.experiencedCount += 1;
+      target.experiencedCount = (target.experiencedCount || 0) + 1;
     }
 
-    this.setStored(STORAGE_KEYS.PROBLEMS, problems);
+    this.setStored(STORAGE_KEYS.PROBLEMS, this.problemsCache);
+
+    // Sync with backend
+    fetch(`/api/v1/citizen/challenges/${problemId}/support`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type }),
+    }).catch((err) => console.warn('Backend sync error:', err));
+
     return target;
   }
 
@@ -87,38 +171,45 @@ class ApiService {
     problemId: string,
     comment: { author: string; role: string; text: string; official: boolean }
   ): Problem | undefined {
-    const problems = this.getProblems();
-    const target = problems.find((p) => p.id === problemId);
+    const target = this.problemsCache.find((p) => p.id === problemId);
     if (!target) return undefined;
 
     if (!target.comments) {
       target.comments = [];
     }
-    target.comments.push({
+    const newComment = {
       id: 'c-' + Date.now(),
       author: comment.author,
       role: comment.role,
       date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
       text: comment.text,
       official: comment.official,
-    });
+    };
+    target.comments.push(newComment);
+    this.setStored(STORAGE_KEYS.PROBLEMS, this.problemsCache);
 
-    this.setStored(STORAGE_KEYS.PROBLEMS, problems);
+    // Sync with backend
+    fetch(`/api/v1/citizen/challenges/${problemId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(comment),
+    }).catch((err) => console.warn('Backend sync error:', err));
+
     return target;
   }
 
   // --- PROJECTS ---
   getProjects(): Project[] {
-    return this.getStored<Project[]>(STORAGE_KEYS.PROJECTS, PROJECTS_DATA);
+    return this.projectsCache;
   }
 
   getProjectById(id: string): Project | undefined {
-    return this.getProjects().find((p) => p.id === id);
+    return this.projectsCache.find((p) => p.id === id);
   }
 
-  // --- INFRASTRUCTURE ASSETS & CONTRACTS ---
+  // --- INFRASTRUCTURE ASSETS ---
   getInfrastructureAssets(): InfrastructureAsset[] {
-    return INFRASTRUCTURE_ASSETS;
+    return this.assetsCache;
   }
 
   getAssets(): InfrastructureAsset[] {
@@ -126,16 +217,16 @@ class ApiService {
   }
 
   getAssetById(id: string): InfrastructureAsset | undefined {
-    return INFRASTRUCTURE_ASSETS.find((a) => a.id === id);
+    return this.assetsCache.find((a) => a.id === id);
   }
 
-  // --- INTEGRITY & ANTI-CORRUPTION CASES ---
+  // --- INTEGRITY & ANTI-CORRUPTION ---
   getIntegrityCases(): IntegrityCase[] {
-    return this.getStored<IntegrityCase[]>(STORAGE_KEYS.INTEGRITY, INTEGRITY_CASES);
+    return this.integrityCache;
   }
 
   getIntegrityCaseById(id: string): IntegrityCase | undefined {
-    return this.getIntegrityCases().find((c) => c.id.toLowerCase() === id.toLowerCase());
+    return this.integrityCache.find((c) => c.id.toLowerCase() === id.toLowerCase());
   }
 
   createIntegrityCase(concern: IntegrityCase): IntegrityCase {
@@ -143,19 +234,24 @@ class ApiService {
   }
 
   createIntegrityConcern(concern: IntegrityCase): IntegrityCase {
-    const list = this.getIntegrityCases();
-    const updated = [concern, ...list];
-    this.setStored(STORAGE_KEYS.INTEGRITY, updated);
+    this.integrityCache = [concern, ...this.integrityCache];
+    this.setStored(STORAGE_KEYS.INTEGRITY, this.integrityCache);
+
+    // Sync with backend
+    fetch('/api/v1/citizen/integrity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(concern),
+    }).catch((err) => console.warn('Backend sync error:', err));
+
     return concern;
   }
 
   supportIntegrityCase(caseId: string): IntegrityCase | undefined {
-    const list = this.getIntegrityCases();
-    const target = list.find((c) => c.id === caseId);
+    const target = this.integrityCache.find((c) => c.id === caseId);
     if (!target) return undefined;
 
-    target.supportingVerifiedReports += 1;
-    // Check 10k threshold condition dynamically!
+    target.supportingVerifiedReports = (target.supportingVerifiedReports || 0) + 1;
     if (target.supportingVerifiedReports >= 10000 && !target.is10kAlertTriggered) {
       target.is10kAlertTriggered = true;
       target.status = 'Investigation Requested';
@@ -164,13 +260,20 @@ class ApiService {
       target.publicConfidenceText = 'High public concern - 10,000+ verified citizen reports';
     }
 
-    this.setStored(STORAGE_KEYS.INTEGRITY, list);
+    this.setStored(STORAGE_KEYS.INTEGRITY, this.integrityCache);
+
+    // Sync with backend
+    fetch(`/api/v1/citizen/integrity/${caseId}/support`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }).catch((err) => console.warn('Backend sync error:', err));
+
     return target;
   }
 
-  // --- CITIZEN VERIFICATION AUDITS ---
+  // --- WORK VERIFICATION AUDITS ---
   getWorkVerifications(): WorkVerificationAudit[] {
-    return this.getStored<WorkVerificationAudit[]>(STORAGE_KEYS.VERIFICATIONS, WORK_VERIFICATIONS);
+    return this.verificationsCache;
   }
 
   submitWorkAuditVote(
@@ -179,19 +282,17 @@ class ApiService {
     comment: string,
     evidenceUrl?: string
   ): WorkVerificationAudit | undefined {
-    const audits = this.getWorkVerifications();
-    const target = audits.find((a) => a.id === auditId);
+    const target = this.verificationsCache.find((a) => a.id === auditId);
     if (!target) return undefined;
 
-    target.totalVotes += 1;
-    if (decision === 'CONFIRMED') target.confirmedCompletedCount += 1;
-    if (decision === 'PROBLEMS_FOUND') target.reportedProblemsCount += 1;
-    if (decision === 'CANNOT_VERIFY') target.cannotVerifyCount += 1;
+    target.totalVotes = (target.totalVotes || 0) + 1;
+    if (decision === 'CONFIRMED') target.confirmedCompletedCount = (target.confirmedCompletedCount || 0) + 1;
+    if (decision === 'PROBLEMS_FOUND') target.reportedProblemsCount = (target.reportedProblemsCount || 0) + 1;
+    if (decision === 'CANNOT_VERIFY') target.cannotVerifyCount = (target.cannotVerifyCount || 0) + 1;
 
-    // Recalculate percentages
-    const positiveRatio = target.totalVotes > 0 ? (target.confirmedCompletedCount / target.totalVotes) * 100 : 0;
-    target.communityVerificationPercent = Math.round(positiveRatio);
+    target.communityVerificationPercent = Math.round(((target.confirmedCompletedCount || 0) / target.totalVotes) * 100);
 
+    if (!target.userAudits) target.userAudits = [];
     target.userAudits.unshift({
       id: 'aud-' + Date.now(),
       userMasked: `${CURRENT_CITIZEN.name} (Citizen #${CURRENT_CITIZEN.id.slice(-6)})`,
@@ -202,7 +303,15 @@ class ApiService {
       verifiedAtLocation: true,
     });
 
-    this.setStored(STORAGE_KEYS.VERIFICATIONS, audits);
+    this.setStored(STORAGE_KEYS.VERIFICATIONS, this.verificationsCache);
+
+    // Sync with backend
+    fetch(`/api/v1/citizen/verifications/${auditId}/vote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision, comment, evidenceUrl }),
+    }).catch((err) => console.warn('Backend sync error:', err));
+
     return target;
   }
 
@@ -213,21 +322,22 @@ class ApiService {
 
   // --- NOTIFICATIONS ---
   getNotifications(): CitizenNotification[] {
-    return this.getStored<CitizenNotification[]>(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+    return this.notificationsCache;
   }
 
   markNotificationRead(id: string): void {
-    const notifs = this.getNotifications();
-    const target = notifs.find((n) => n.id === id);
+    const target = this.notificationsCache.find((n) => n.id === id);
     if (target) {
       target.read = true;
-      this.setStored(STORAGE_KEYS.NOTIFICATIONS, notifs);
+      this.setStored(STORAGE_KEYS.NOTIFICATIONS, this.notificationsCache);
+      fetch(`/api/v1/citizen/notifications/${id}/read`, { method: 'PATCH' }).catch(() => {});
     }
   }
 
   markAllNotificationsRead(): void {
-    const notifs = this.getNotifications().map((n) => ({ ...n, read: true }));
-    this.setStored(STORAGE_KEYS.NOTIFICATIONS, notifs);
+    this.notificationsCache = this.notificationsCache.map((n) => ({ ...n, read: true }));
+    this.setStored(STORAGE_KEYS.NOTIFICATIONS, this.notificationsCache);
+    fetch('/api/v1/citizen/notifications/read-all', { method: 'POST' }).catch(() => {});
   }
 
   // --- GLOBAL SEARCH ---

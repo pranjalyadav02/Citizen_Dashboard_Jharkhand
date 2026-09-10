@@ -28,11 +28,30 @@ export const CURRENT_STATE: State = {
 };
 
 export const DISTRICTS: District[] = [
-  { id: 'RNC', stateId: 'JH', name: 'Ranchi', nameHi: 'राँची', code: 'RNC', headquarters: 'Ranchi' },
+  { id: 'GAR', stateId: 'JH', name: 'Garhwa', nameHi: 'गढ़वा', code: 'GAR', headquarters: 'Garhwa' },
+  { id: 'PLM', stateId: 'JH', name: 'Palamu', nameHi: 'पलामू', code: 'PLM', headquarters: 'Medininagar' },
+  { id: 'LTR', stateId: 'JH', name: 'Latehar', nameHi: 'लातेहार', code: 'LTR', headquarters: 'Latehar' },
+  { id: 'CHT', stateId: 'JH', name: 'Chatra', nameHi: 'चतरा', code: 'CHT', headquarters: 'Chatra' },
   { id: 'HZB', stateId: 'JH', name: 'Hazaribagh', nameHi: 'हज़ारीबाग़', code: 'HZB', headquarters: 'Hazaribagh' },
-  { id: 'DHN', stateId: 'JH', name: 'Dhanbad', nameHi: 'धनबाद', code: 'DHN', headquarters: 'Dhanbad' },
-  { id: 'ESB', stateId: 'JH', name: 'East Singhbhum', nameHi: 'पूर्वी सिंहभूम', code: 'ESB', headquarters: 'Jamshedpur' },
+  { id: 'KOD', stateId: 'JH', name: 'Koderma', nameHi: 'कोडरमा', code: 'KOD', headquarters: 'Koderma' },
+  { id: 'GIR', stateId: 'JH', name: 'Giridih', nameHi: 'गिरिडीह', code: 'GIR', headquarters: 'Giridih' },
+  { id: 'RMG', stateId: 'JH', name: 'Ramgarh', nameHi: 'रामगढ़', code: 'RMG', headquarters: 'Ramgarh' },
   { id: 'BKR', stateId: 'JH', name: 'Bokaro', nameHi: 'बोकारो', code: 'BKR', headquarters: 'Bokaro Steel City' },
+  { id: 'DHN', stateId: 'JH', name: 'Dhanbad', nameHi: 'धनबाद', code: 'DHN', headquarters: 'Dhanbad' },
+  { id: 'DEO', stateId: 'JH', name: 'Deoghar', nameHi: 'देवघर', code: 'DEO', headquarters: 'Deoghar' },
+  { id: 'DUM', stateId: 'JH', name: 'Dumka', nameHi: 'दुमका', code: 'DUM', headquarters: 'Dumka' },
+  { id: 'JMT', stateId: 'JH', name: 'Jamtara', nameHi: 'जामताड़ा', code: 'JMT', headquarters: 'Jamtara' },
+  { id: 'GOD', stateId: 'JH', name: 'Godda', nameHi: 'गोड्डा', code: 'GOD', headquarters: 'Godda' },
+  { id: 'SAH', stateId: 'JH', name: 'Sahibganj', nameHi: 'साहिबगंज', code: 'SAH', headquarters: 'Sahibganj' },
+  { id: 'PAK', stateId: 'JH', name: 'Pakur', nameHi: 'पाकुड़', code: 'PAK', headquarters: 'Pakur' },
+  { id: 'RNC', stateId: 'JH', name: 'Ranchi', nameHi: 'राँची', code: 'RNC', headquarters: 'Ranchi' },
+  { id: 'LOH', stateId: 'JH', name: 'Lohardaga', nameHi: 'लोहरदगा', code: 'LOH', headquarters: 'Lohardaga' },
+  { id: 'GUM', stateId: 'JH', name: 'Gumla', nameHi: 'गुमला', code: 'GUM', headquarters: 'Gumla' },
+  { id: 'SIM', stateId: 'JH', name: 'Simdega', nameHi: 'सिमडेगा', code: 'SIM', headquarters: 'Simdega' },
+  { id: 'KHU', stateId: 'JH', name: 'Khunti', nameHi: 'खूंटी', code: 'KHU', headquarters: 'Khunti' },
+  { id: 'SKR', stateId: 'JH', name: 'Saraikela Kharsawan', nameHi: 'सरायकेला खरसावां', code: 'SKR', headquarters: 'Saraikela' },
+  { id: 'ESB', stateId: 'JH', name: 'East Singhbhum', nameHi: 'पूर्वी सिंहभूम', code: 'ESB', headquarters: 'Jamshedpur' },
+  { id: 'WSB', stateId: 'JH', name: 'West Singhbhum', nameHi: 'पश्चिमी सिंहभूम', code: 'WSB', headquarters: 'Chaibasa' }
 ];
 
 export const BLOCKS_RANCHI: Block[] = [

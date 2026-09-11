@@ -15,7 +15,9 @@ import {
   Wifi,
   WifiOff,
   AlertCircle,
+  LogOut,
 } from 'lucide-react';
+import { handlePortalLogout } from '../../utils/navigation';
 
 export const Header: React.FC = () => {
   const {
@@ -276,6 +278,16 @@ export const Header: React.FC = () => {
             <span className="text-xs font-semibold hidden md:inline-block truncate max-w-[90px]">
               {citizen.name.split(' ')[0]}
             </span>
+          </button>
+
+          {/* Return to Login / Logout */}
+          <button
+            onClick={handlePortalLogout}
+            className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-slate-200 transition-colors flex items-center space-x-1 cursor-pointer"
+            title="Sign Out to JanaSamadhan Login Portal"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-xs font-semibold hidden xl:inline-block">Exit</span>
           </button>
 
           {/* Primary CTA: Report a Problem */}

@@ -12,7 +12,9 @@ import {
   Sliders,
   Sparkles,
   Layers,
+  LogOut,
 } from 'lucide-react';
+import { handlePortalLogout } from '../../utils/navigation';
 
 export const CitizenProfile: React.FC = () => {
   const { citizen, location, setIsLocationModalOpen, setIsShowcaseTourOpen, language, setLanguage } = useApp();
@@ -133,6 +135,17 @@ export const CitizenProfile: React.FC = () => {
             className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shrink-0 cursor-pointer"
           >
             Launch Tour
+          </button>
+        </div>
+
+        {/* Unified Logout Button */}
+        <div className="pt-2 flex justify-end">
+          <button
+            onClick={handlePortalLogout}
+            className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-600 hover:text-rose-700 text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer shadow-xs"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out & Return to Login Portal</span>
           </button>
         </div>
       </div>

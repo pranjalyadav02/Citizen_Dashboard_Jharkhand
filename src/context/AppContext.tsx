@@ -26,6 +26,7 @@ export type TabType =
   | 'infrastructure'
   | 'integrity'
   | 'accountability'
+  | 'transparency'
   | 'profile';
 
 export type Language = 'en' | 'hi';

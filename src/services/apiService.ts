@@ -41,12 +41,12 @@ class ApiService {
   private notificationsCache: CitizenNotification[];
 
   constructor() {
-    this.problemsCache = this.getStored<Problem[]>(STORAGE_KEYS.PROBLEMS, PROBLEMS_DATA);
-    this.projectsCache = this.getStored<Project[]>(STORAGE_KEYS.PROJECTS, PROJECTS_DATA);
-    this.assetsCache = INFRASTRUCTURE_ASSETS;
-    this.integrityCache = this.getStored<IntegrityCase[]>(STORAGE_KEYS.INTEGRITY, INTEGRITY_CASES);
-    this.verificationsCache = this.getStored<WorkVerificationAudit[]>(STORAGE_KEYS.VERIFICATIONS, WORK_VERIFICATIONS);
-    this.notificationsCache = this.getStored<CitizenNotification[]>(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+    this.problemsCache = this.getStored<Problem[]>(STORAGE_KEYS.PROBLEMS, []);
+    this.projectsCache = this.getStored<Project[]>(STORAGE_KEYS.PROJECTS, []);
+    this.assetsCache = [];
+    this.integrityCache = this.getStored<IntegrityCase[]>(STORAGE_KEYS.INTEGRITY, []);
+    this.verificationsCache = this.getStored<WorkVerificationAudit[]>(STORAGE_KEYS.VERIFICATIONS, []);
+    this.notificationsCache = this.getStored<CitizenNotification[]>(STORAGE_KEYS.NOTIFICATIONS, []);
 
     // Initial background sync with backend API
     this.syncFromBackend();
@@ -82,7 +82,7 @@ class ApiService {
       const probRes = await fetch('/api/v1/citizen/challenges');
       if (probRes.ok) {
         const json = await probRes.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        if (json.success && Array.isArray(json.data)) {
           this.problemsCache = json.data;
           this.setStored(STORAGE_KEYS.PROBLEMS, this.problemsCache);
         }
@@ -92,7 +92,7 @@ class ApiService {
       const intRes = await fetch('/api/v1/citizen/integrity');
       if (intRes.ok) {
         const json = await intRes.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        if (json.success && Array.isArray(json.data)) {
           this.integrityCache = json.data;
           this.setStored(STORAGE_KEYS.INTEGRITY, this.integrityCache);
         }
@@ -102,7 +102,7 @@ class ApiService {
       const verRes = await fetch('/api/v1/citizen/verifications');
       if (verRes.ok) {
         const json = await verRes.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        if (json.success && Array.isArray(json.data)) {
           this.verificationsCache = json.data;
           this.setStored(STORAGE_KEYS.VERIFICATIONS, this.verificationsCache);
         }
@@ -112,7 +112,7 @@ class ApiService {
       const notRes = await fetch('/api/v1/citizen/notifications');
       if (notRes.ok) {
         const json = await notRes.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        if (json.success && Array.isArray(json.data)) {
           this.notificationsCache = json.data;
           this.setStored(STORAGE_KEYS.NOTIFICATIONS, this.notificationsCache);
         }

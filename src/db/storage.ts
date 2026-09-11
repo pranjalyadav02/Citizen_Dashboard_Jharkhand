@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { 
   PROBLEMS_DATA, 
   PROJECTS_DATA, 
@@ -22,29 +23,32 @@ export interface CitizenStoreData {
   notifications: any[];
 }
 
-const SHARED_DIR = path.resolve(process.cwd(), '..', 'shared_data');
-const LOCAL_DIR = path.resolve(process.cwd(), 'data');
-const SHARED_FILE = path.join(SHARED_DIR, 'governance_store.json');
-const LOCAL_FILE = path.join(LOCAL_DIR, 'db.json');
+function resolveStorePath(filename: string = 'governance_store.json'): string {
+  let dirname = process.cwd();
+  try {
+    dirname = path.dirname(fileURLToPath(import.meta.url));
+  } catch {}
+
+  const candidates = [
+    path.resolve(process.cwd(), '..', 'shared_data', filename),
+    path.resolve(process.cwd(), 'shared_data', filename),
+    path.resolve(dirname, '..', '..', '..', 'shared_data', filename),
+    path.resolve(dirname, '..', '..', 'shared_data', filename),
+    path.resolve('C:\\Users\\omen\\.gemini\\antigravity-ide\\scratch\\jharkhand_portals\\shared_data', filename)
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return candidates[0];
+}
 
 class StorageEngine {
   private data: CitizenStoreData;
   private filePath: string;
 
   constructor() {
-    // Prefer shared store if in multi-portal folder, otherwise local
-    if (fs.existsSync(SHARED_DIR) || fs.existsSync(path.resolve(process.cwd(), '..', 'Government_Command_Jharkhand'))) {
-      if (!fs.existsSync(SHARED_DIR)) {
-        try { fs.mkdirSync(SHARED_DIR, { recursive: true }); } catch (e) {}
-      }
-      this.filePath = SHARED_FILE;
-    } else {
-      if (!fs.existsSync(LOCAL_DIR)) {
-        try { fs.mkdirSync(LOCAL_DIR, { recursive: true }); } catch (e) {}
-      }
-      this.filePath = LOCAL_FILE;
-    }
-
+    this.filePath = resolveStorePath('governance_store.json');
+    console.log('[Citizen Storage] Using storage file:', this.filePath);
     this.data = this.loadData();
   }
 
@@ -61,20 +65,34 @@ class StorageEngine {
       console.warn('Could not read existing store, creating new seed:', err);
     }
 
-    // Initialize with rich seed data
+    // Initialize with clean state
     const initial: CitizenStoreData = {
       citizens: [CURRENT_CITIZEN],
-      problems: PROBLEMS_DATA,
-      projects: PROJECTS_DATA,
+      problems: [],
+      projects: [],
       infrastructure: INFRASTRUCTURE_ASSETS,
-      integrityCases: INTEGRITY_CASES,
-      verifications: WORK_VERIFICATIONS,
-      accountability: ACCOUNTABILITY_RECORDS,
-      notifications: INITIAL_NOTIFICATIONS,
+      integrityCases: [],
+      verifications: [],
+      accountability: [],
+      notifications: [],
     };
 
     this.saveData(initial);
     return initial;
+  }
+
+  public reload(): void {
+    try {
+      if (fs.existsSync(this.filePath)) {
+        const raw = fs.readFileSync(this.filePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.problems)) {
+          this.data = parsed;
+        }
+      }
+    } catch (err) {
+      console.warn('Could not reload citizen storage engine file:', err);
+    }
   }
 
   public saveData(customData?: CitizenStoreData): void {
@@ -90,12 +108,13 @@ class StorageEngine {
 
   // PROBLEMS CRUD
   public getProblems(filter?: { district?: string; category?: string; query?: string; status?: string }): any[] {
+    this.reload();
     let list = [...this.data.problems];
     if (filter?.district && filter.district !== 'All') {
-      list = list.filter(p => p.location?.district?.toLowerCase() === filter.district?.toLowerCase());
+      list = list.filter(p => (p.district || p.location?.district)?.toLowerCase() === filter.district?.toLowerCase());
     }
     if (filter?.category && filter.category !== 'All') {
-      list = list.filter(p => p.category?.toLowerCase() === filter.category?.toLowerCase());
+      list = list.filter(p => (p.category || p.domain)?.toLowerCase() === filter.category?.toLowerCase());
     }
     if (filter?.status && filter.status !== 'All') {
       list = list.filter(p => p.status?.toLowerCase() === filter.status?.toLowerCase());
@@ -106,32 +125,46 @@ class StorageEngine {
         (p.title && p.title.toLowerCase().includes(q)) ||
         (p.description && p.description.toLowerCase().includes(q)) ||
         (p.id && p.id.toLowerCase().includes(q)) ||
-        (p.location?.village && p.location.village.toLowerCase().includes(q))
+        (p.location?.village && p.location.village.toLowerCase().includes(q)) ||
+        (p.location?.block && p.location.block.toLowerCase().includes(q))
       );
     }
     return list;
   }
 
   public getProblemById(id: string): any | undefined {
+    this.reload();
     return this.data.problems.find(p => p.id?.toLowerCase() === id.toLowerCase());
   }
 
   public addProblem(problem: any): any {
+    this.reload();
+    const districtName = problem.location?.district || "Ranchi";
+    const blockName = problem.location?.block || "Kanke";
     const newProblem = {
       ...problem,
       id: problem.id || `JH-PRB-${Date.now().toString().slice(-6)}`,
+      district: districtName,
+      block: blockName,
+      category: problem.category || problem.domain || "Public Infrastructure",
+      domain: problem.category || problem.domain || "Public Infrastructure",
       createdAt: problem.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      dateReported: new Date().toISOString().split('T')[0],
       supportersCount: problem.supportersCount || 1,
+      verifiedCitizenSupporters: problem.supportersCount || 1,
       experiencedCount: problem.experiencedCount || 1,
-      status: problem.status || 'SUBMITTED',
+      status: problem.status || 'Submitted',
       severity: problem.severity || 'High',
+      assignedDepartment: problem.assignedDepartment || 'Pending Triage',
+      slaStatus: problem.slaStatus || 'Within SLA',
+      slaDaysRemaining: problem.slaDaysRemaining || 7,
       comments: problem.comments || [],
       location: problem.location || {
-        district: "Ranchi",
-        block: "Kanke",
-        panchayat: "Boreya",
-        village: "Boreya Basti",
+        district: districtName,
+        block: blockName,
+        panchayat: problem.panchayat || "Boreya",
+        village: problem.village || "Boreya Basti",
         coordinates: { lat: 23.435, lng: 85.321 }
       },
       aiIntelligence: problem.aiIntelligence || {
@@ -153,10 +186,12 @@ class StorageEngine {
   }
 
   public supportProblem(id: string, type: 'SUPPORT' | 'EXPERIENCED_THIS'): any | undefined {
+    this.reload();
     const p = this.getProblemById(id);
     if (!p) return undefined;
     if (type === 'SUPPORT') {
       p.supportersCount = (p.supportersCount || 0) + 1;
+      p.verifiedCitizenSupporters = (p.verifiedCitizenSupporters || 0) + 1;
     } else {
       p.experiencedCount = (p.experiencedCount || 0) + 1;
     }

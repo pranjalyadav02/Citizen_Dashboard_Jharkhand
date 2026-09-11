@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { apiService } from '../../services/apiService';
-import { Problem, ProblemCategory, ProblemSeverity } from '../../types';
+import { ProblemCategory, ProblemSeverity } from '../../types';
 import {
   MapPin,
   Filter,
@@ -9,13 +9,10 @@ import {
   AlertTriangle,
   Clock,
   ThumbsUp,
-  Share2,
   ArrowRight,
   ShieldCheck,
-  Flame,
-  Layers,
-  Sparkles,
-  Users,
+  PlusCircle,
+  Building,
 } from 'lucide-react';
 
 export const CATEGORIES: ProblemCategory[] = [
@@ -27,37 +24,21 @@ export const CATEGORIES: ProblemCategory[] = [
   'Education',
   'Environment',
   'Energy',
-  'Accessibility',
-  'Public Administration',
-  'Rural Livelihoods',
   'Infrastructure',
   'Public Services',
-  'Urban Development',
   'Other',
 ];
 
 export const LocalDashboard: React.FC = () => {
   const { location, setSelectedProblemId, setActiveTab, triggerRefresh, language } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
-  const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
 
   const problems = apiService.getProblems();
-  const projects = apiService.getProjects();
-  const verifications = apiService.getWorkVerifications();
 
-  // Filter problems for current block/community (or fallback to all if matching none)
-  const communityProblems = problems.filter((p) => {
+  const filteredProblems = problems.filter((p) => {
     const matchesCategory = selectedCategory === 'ALL' || p.category === selectedCategory;
-    const matchesSeverity = selectedSeverity === 'ALL' || p.severity === selectedSeverity;
-    return matchesCategory && matchesSeverity;
+    return matchesCategory;
   });
-
-  // Calculate statistics
-  const openCount = problems.filter((p) => p.stage === 'Submitted' || p.stage === 'AI Triaged').length;
-  const underVerificationCount = problems.filter((p) => p.stage === 'Community Validated' || p.stage === 'Government Verified').length;
-  const activeProjectsCount = projects.filter((pr) => pr.trl < 9).length;
-  const completedSolutionsCount = projects.filter((pr) => pr.trl >= 9).length;
-  const pendingCitizenVerificationCount = verifications.filter((v) => v.status === 'Verification_Open').length;
 
   const handleSupport = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -65,18 +46,12 @@ export const LocalDashboard: React.FC = () => {
     triggerRefresh();
   };
 
-  const handleExperienced = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    apiService.supportProblem(id, 'EXPERIENCED_THIS');
-    triggerRefresh();
-  };
-
   const getSeverityBadge = (severity: ProblemSeverity) => {
     switch (severity) {
       case 'Critical':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">Critical Severity</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">Critical</span>;
       case 'High':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">High Severity</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">High</span>;
       case 'Medium':
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">Medium</span>;
       default:
@@ -84,165 +59,105 @@ export const LocalDashboard: React.FC = () => {
     }
   };
 
-  const getStageBadge = (stage: string) => {
-    return (
-      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-900 border border-emerald-200 flex items-center space-x-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-        <span>{stage}</span>
-      </span>
-    );
-  };
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* 1. Header & Local Stats Bar */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <MapPin className="w-5 h-5 text-emerald-700" />
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-sans tracking-tight">
-                {location.block} Block
-              </h2>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                {location.district} District
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 font-medium">
-              {language === 'hi' ? 'आपका समुदाय व स्थानीय नवाचार डैशबोर्ड' : 'Your Community Civic & Innovation Dashboard'}
-            </p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Section Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+            <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+              {language === 'hi' ? 'क्षेत्रीय नागरिक डैशबोर्ड' : 'Community Problem Feed'}
+            </h2>
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold">
+              {location.block}
+            </span>
           </div>
-
-          <button
-            onClick={() => setActiveTab('report')}
-            className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold rounded-xl shadow-xs flex items-center space-x-1.5 cursor-pointer"
-          >
-            <span>+ Report In {location.block}</span>
-          </button>
+          <p className="text-xs text-slate-500 mt-1">
+            {language === 'hi'
+              ? 'आपके क्षेत्र में नागरिकों द्वारा दर्ज की गई समस्याएं एवं उनकी विभागीय प्रगति।'
+              : 'Public challenges reported in your locality and their active status.'}
+          </p>
         </div>
 
-        {/* 5 Core Statistics */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-2">
-          {/* Open Problems */}
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-              Open Problems
-            </span>
-            <div className="flex items-baseline space-x-1.5 mt-1">
-              <span className="text-2xl font-extrabold text-slate-900">{openCount}</span>
-              <span className="text-[10px] text-amber-600 font-semibold">Triage queue</span>
-            </div>
-          </div>
-
-          {/* Under Verification */}
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-              Under Verification
-            </span>
-            <div className="flex items-baseline space-x-1.5 mt-1">
-              <span className="text-2xl font-extrabold text-slate-900">{underVerificationCount}</span>
-              <span className="text-[10px] text-emerald-700 font-semibold">Panchayat verified</span>
-            </div>
-          </div>
-
-          {/* Active Projects */}
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-              Active Projects
-            </span>
-            <div className="flex items-baseline space-x-1.5 mt-1">
-              <span className="text-2xl font-extrabold text-slate-900">{activeProjectsCount}</span>
-              <span className="text-[10px] text-blue-600 font-semibold">University R&D</span>
-            </div>
-          </div>
-
-          {/* Completed Solutions */}
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-              Completed Solutions
-            </span>
-            <div className="flex items-baseline space-x-1.5 mt-1">
-              <span className="text-2xl font-extrabold text-slate-900">{completedSolutionsCount}</span>
-              <span className="text-[10px] text-emerald-600 font-semibold">Field deployed</span>
-            </div>
-          </div>
-
-          {/* Pending Citizen Verification */}
-          <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 col-span-2 sm:col-span-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 block">
-              Pending Citizen Audit
-            </span>
-            <div className="flex items-baseline space-x-1.5 mt-1">
-              <span className="text-2xl font-extrabold text-amber-950">{pendingCitizenVerificationCount}</span>
-              <span className="text-[10px] text-amber-800 font-bold">Needs your vote!</span>
-            </div>
-          </div>
-        </div>
+        <button
+          onClick={() => setActiveTab('report')}
+          className="self-start sm:self-auto px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+        >
+          <PlusCircle className="w-4 h-4 text-emerald-300" />
+          <span>{language === 'hi' ? 'समस्या दर्ज करें' : 'Report Problem'}</span>
+        </button>
       </div>
 
-      {/* 2. Problems Near You Section */}
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-              {language === 'hi' ? 'आपके समीप दर्ज समस्याएं' : 'Problems Near You'}
+      {/* Category Filter Pills */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
+        <button
+          onClick={() => setSelectedCategory('ALL')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition cursor-pointer ${
+            selectedCategory === 'ALL'
+              ? 'bg-emerald-800 text-white shadow-xs'
+              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+          }`}
+        >
+          {language === 'hi' ? 'सभी श्रेणियां' : 'All Categories'} ({problems.length})
+        </button>
+        {CATEGORIES.map((cat) => {
+          const count = problems.filter((p) => p.category === cat).length;
+          return (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium shrink-0 transition cursor-pointer ${
+                selectedCategory === cat
+                  ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <span>{cat}</span>
+              {count > 0 && <span className="ml-1 text-[10px] opacity-75 font-mono">({count})</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Problems List or Clean Empty State */}
+      {filteredProblems.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center space-y-4 shadow-xs">
+          <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-700">
+            <CheckCircle2 className="w-7 h-7" />
+          </div>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h3 className="text-base font-bold text-slate-900">
+              {language === 'hi'
+                ? 'वर्तमान में कोई खुली समस्या दर्ज नहीं है'
+                : `No active challenges reported in ${location.block} yet`}
             </h3>
-            <p className="text-xs text-slate-500">
-              Grassroots community issues reported by verified citizens in {location.block} & adjoining blocks.
+            <p className="text-xs text-slate-500 leading-relaxed">
+              {language === 'hi'
+                ? 'यदि आपके क्षेत्र में सड़क, पेयजल, बिजली, सफाई या स्कूल संबंधी कोई समस्या है, तो सीधे रिपोर्ट दर्ज करें।'
+                : 'If you notice infrastructure defects or civic problems in your area, submit a report to initiate department action.'}
             </p>
           </div>
-
-          {/* Severity filter selector */}
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-semibold text-slate-500">Severity:</span>
-            <select
-              value={selectedSeverity}
-              onChange={(e) => setSelectedSeverity(e.target.value)}
-              className="text-xs font-semibold px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-700"
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              onClick={() => setActiveTab('report')}
+              className="px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow transition inline-flex items-center gap-1.5 cursor-pointer"
             >
-              <option value="ALL">All Severities</option>
-              <option value="Critical">Critical</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
+              <PlusCircle className="w-4 h-4 text-emerald-300" />
+              <span>{language === 'hi' ? 'समस्या दर्ज करें' : 'Report a Problem'}</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('transparency')}
+              className="px-5 py-2.5 bg-teal-800 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow transition inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-300" />
+              <span>{language === 'hi' ? 'पारदर्शिता व समाधान सूची' : 'Transparency List'}</span>
+            </button>
           </div>
         </div>
-
-        {/* Category Filter Pills Carousel */}
-        <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
-          <button
-            onClick={() => setSelectedCategory('ALL')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-              selectedCategory === 'ALL'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
-            }`}
-          >
-            All Categories ({problems.length})
-          </button>
-          {CATEGORIES.map((cat) => {
-            const count = problems.filter((p) => p.category === cat).length;
-            if (count === 0) return null;
-            return (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  selectedCategory === cat
-                    ? 'bg-emerald-800 text-white shadow-xs font-bold'
-                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
-                }`}
-              >
-                {cat} ({count})
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Cards Grid */}
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {communityProblems.map((problem) => (
+          {filteredProblems.map((problem) => (
             <div
               key={problem.id}
               onClick={() => {
@@ -251,11 +166,10 @@ export const LocalDashboard: React.FC = () => {
               }}
               className="group bg-white rounded-2xl p-5 border border-slate-200 hover:border-emerald-500 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer"
             >
-              {/* Card Top Strip */}
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                  <div className="flex items-center space-x-1.5 flex-wrap">
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
                       {problem.id}
                     </span>
                     <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
@@ -265,74 +179,40 @@ export const LocalDashboard: React.FC = () => {
                   {getSeverityBadge(problem.severity)}
                 </div>
 
-                {/* Title */}
-                <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-emerald-900 transition-colors line-clamp-2 leading-snug">
+                <h4 className="text-sm font-bold text-slate-900 group-hover:text-emerald-900 transition-colors line-clamp-2 leading-snug">
                   {language === 'hi' && problem.titleHi ? problem.titleHi : problem.title}
                 </h4>
 
-                {/* Location & Reported date */}
                 <div className="flex items-center space-x-1 text-xs text-slate-500 font-medium">
                   <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="truncate">{problem.location.block} • {problem.location.village}</span>
-                  <span>•</span>
-                  <span>{problem.reportedDate}</span>
+                  <span className="truncate">
+                    {problem.location?.block} • {problem.location?.village}
+                  </span>
                 </div>
 
-                {/* Description excerpt */}
                 <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                   {language === 'hi' && problem.descriptionHi ? problem.descriptionHi : problem.description}
                 </p>
-
-                {/* If part of a cluster */}
-                {problem.clusterName && (
-                  <div className="p-2 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-600 flex items-center space-x-1.5">
-                    <Layers className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                    <span className="truncate">Part of: <strong>{problem.clusterName}</strong></span>
-                  </div>
-                )}
               </div>
 
-              {/* Card Bottom Meta & Interactive Support Buttons */}
-              <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  {getStageBadge(problem.stage)}
-                  {problem.isGovernmentVerified && (
-                    <span className="flex items-center space-x-1 text-[11px] font-bold text-emerald-700">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Gov Verified</span>
-                    </span>
-                  )}
-                </div>
+              <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                <button
+                  onClick={(e) => handleSupport(e, problem.id)}
+                  className="px-2.5 py-1 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-900 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 flex items-center space-x-1 transition-colors cursor-pointer"
+                >
+                  <ThumbsUp className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>{problem.supportersCount || 1}</span>
+                </button>
 
-                <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={(e) => handleSupport(e, problem.id)}
-                      className="px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-900 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 flex items-center space-x-1 transition-colors cursor-pointer"
-                      title="Support this problem"
-                    >
-                      <ThumbsUp className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>{problem.supportersCount}</span>
-                    </button>
-                    <button
-                      onClick={(e) => handleExperienced(e, problem.id)}
-                      className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 text-[11px] font-medium rounded-lg border border-slate-200 transition-colors"
-                      title="I have experienced this issue too"
-                    >
-                      Experienced ({problem.experiencedCount})
-                    </button>
-                  </div>
-
-                  <span className="text-xs font-bold text-emerald-800 flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
-                    <span>View</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
+                <div className="flex items-center gap-1 text-xs font-bold text-emerald-800 group-hover:translate-x-1 transition-transform">
+                  <span>{language === 'hi' ? 'विवरण देखें' : 'View Details'}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      )}
     </div>
   );
 };

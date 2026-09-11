@@ -13,6 +13,8 @@ import {
   Layers,
   CheckCircle2,
   ArrowRight,
+  Compass,
+  Plus,
   PlusCircle,
   Clock,
   Sparkles,
@@ -231,11 +233,35 @@ export const ProblemList: React.FC = () => {
       </div>
 
       {/* Problems Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sortedProblems.map((p) => {
-          const distance = sortBy === 'PROXIMITY' && userLocation 
-            ? calculateDistance(userLocation.lat, userLocation.lng, p.location.latitude, p.location.longitude) 
-            : null;
+      {sortedProblems.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-4 shadow-xs">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-700">
+            <Compass className="w-8 h-8" />
+          </div>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h3 className="text-base font-bold text-slate-900">
+              {language === 'hi' ? 'कोई समस्या दर्ज नहीं है' : 'No Community Challenges Found'}
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              {language === 'hi'
+                ? 'इस क्षेत्र या श्रेणी में अभी तक कोई समस्या दर्ज नहीं की गई है। पहली समस्या दर्ज करने के लिए नीचे बटन पर क्लिक करें।'
+                : 'No problems have been reported under this sector yet. Click the button below to submit the first civic challenge.'}
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveTab('report')}
+            className="px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow transition inline-flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4 text-emerald-300" />
+            <span>{language === 'hi' ? 'नई समस्या दर्ज करें' : 'Report a Problem'}</span>
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sortedProblems.map((p) => {
+            const distance = sortBy === 'PROXIMITY' && userLocation 
+              ? calculateDistance(userLocation.lat, userLocation.lng, p.location.latitude, p.location.longitude) 
+              : null;
 
           return (
           <div
@@ -316,7 +342,8 @@ export const ProblemList: React.FC = () => {
             </div>
           </div>
         )})}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

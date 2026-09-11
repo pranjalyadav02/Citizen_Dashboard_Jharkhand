@@ -172,6 +172,11 @@ export interface Problem {
   affectedCountApprox: number;
   location: GeoLocation;
   reportedDate: string;
+  /** API-compatible fields retained for reports and tracker views. */
+  createdAt?: string;
+  status?: string;
+  reporterId?: string;
+  reporterName?: string;
   reporterMasked: string;
   stage: ProblemStage;
   isGovernmentVerified: boolean;

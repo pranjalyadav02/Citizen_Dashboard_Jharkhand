@@ -61,6 +61,7 @@ export const Header: React.FC = () => {
     { id: 'home', label: 'Home', labelHi: 'होम' },
     { id: 'explore', label: 'Explore Problems', labelHi: 'समस्याएं देखें' },
     { id: 'my-reports', label: 'My Reports', labelHi: 'मेरी रिपोर्टें' },
+    { id: 'transparency', label: 'Transparency & Solutions', labelHi: 'पारदर्शिता व समाधान सूची' },
     { id: 'projects', label: 'Track Projects', labelHi: 'परियोजनाएं' },
     { id: 'verify', label: 'Verify Work', labelHi: 'सत्यापन' },
     { id: 'infrastructure', label: 'Road & Assets', labelHi: 'सड़क व परिसंपत्तियां' },
@@ -69,7 +70,7 @@ export const Header: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
+    <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs max-w-full overflow-x-hidden">
       {/* 1. Official Government of Jharkhand Ribbon */}
       <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 sm:px-6 lg:px-8 flex items-center justify-between border-b border-slate-800">
         <div className="flex items-center space-x-3">
@@ -80,7 +81,7 @@ export const Header: React.FC = () => {
             <span>Government of Jharkhand</span>
           </div>
           <span className="hidden md:inline-block text-[11px] text-emerald-400 font-semibold bg-emerald-950/80 border border-emerald-800/60 px-2 py-0.5 rounded">
-            Smart India Hackathon (SIH) 2026 Innovation Initiative
+            {language === 'hi' ? 'लोक सेवा गारंटी व नागरिक समाधान मंच' : 'Citizen Public Services & Redressal Platform'}
           </span>
         </div>
 
@@ -96,16 +97,16 @@ export const Header: React.FC = () => {
             title="Toggle simulated offline mode"
           >
             {isOffline ? <WifiOff className="w-3 h-3 text-rose-400" /> : <Wifi className="w-3 h-3 text-emerald-400" />}
-            <span>{isOffline ? 'Offline Mode Active' : 'Online'}</span>
+            <span>{isOffline ? 'Offline' : 'Online'}</span>
           </button>
 
-          {/* Demo Mode Button */}
+          {/* Jump to Transparency Button */}
           <button
-            onClick={() => setIsShowcaseTourOpen(true)}
-            className="flex items-center space-x-1 text-[11px] font-bold text-amber-300 hover:text-amber-200 bg-amber-950/60 hover:bg-amber-900/70 border border-amber-700/50 px-2.5 py-0.5 rounded transition-all cursor-pointer"
+            onClick={() => setActiveTab('transparency')}
+            className="flex items-center space-x-1 text-[11px] font-bold text-emerald-300 hover:text-white bg-emerald-950/80 hover:bg-emerald-900/90 border border-emerald-700/60 px-2.5 py-0.5 rounded transition-all cursor-pointer"
           >
-            <Sparkles className="w-3 h-3 text-amber-400" />
-            <span>SIH Showcase Story</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{language === 'hi' ? 'समाधान व पारदर्शिता' : 'Solutions & Transparency'}</span>
           </button>
 
           {/* Language Selector */}

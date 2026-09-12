@@ -5,6 +5,7 @@ import { Footer } from './components/common/Footer';
 import { MobileNav } from './components/common/MobileNav';
 import { LocationModal } from './components/common/LocationModal';
 import { SearchModal } from './components/common/SearchModal';
+import { PWAInstallBanner } from './components/common/PWAInstallBanner';
 
 import { Hero } from './components/home/Hero';
 import { LocalDashboard } from './components/home/LocalDashboard';
@@ -63,9 +64,10 @@ export default function App() {
         <Footer />
         <MobileNav />
 
-        {/* Global Modals */}
+        {/* Global Modals & PWA Prompts */}
         <LocationModal />
         <SearchModal />
+        <PWAInstallBanner />
       </div>
     </AppProvider>
   );

@@ -200,16 +200,6 @@ export const Header: React.FC = () => {
             <Search className="w-4 h-4" />
           </button>
 
-          {/* PWA Install Button */}
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('trigger-pwa-install'))}
-            className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 bg-emerald-100/70 hover:bg-emerald-200/80 text-emerald-900 border border-emerald-300/60 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
-            title="Install JanaSamadhan as Mobile/Desktop App"
-          >
-            <Smartphone className="w-3.5 h-3.5 text-emerald-800" />
-            <span className="hidden md:inline">Install App</span>
-          </button>
-
           {/* Notification Center */}
           <div className="relative" ref={notifRef}>
             <button
